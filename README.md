@@ -16,5 +16,5 @@ Requirements and Platforms
 
 Standalone Executable Download
 ------------------------------
-* [Version 1.0 (December 25, 2013)](https://app.box.com/s/ai4kdkt48yectaq36oez)
+* [Version 1.0.1 (December 26, 2013)](https://app.box.com/s/yj21qh62e4g1sj7pagsg)
 
