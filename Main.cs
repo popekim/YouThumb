@@ -240,7 +240,6 @@ namespace YouThumb
             currentVideoID = videoID;
             cachedImage = image;
             cachedTitle = title;
-            cachedTitle = "A B";
 
             return true;
         }
