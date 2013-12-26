@@ -43,12 +43,9 @@ namespace YouThumb
         }
 
         private static readonly int MaxWordWrapLines = 3;
-        private List<string> GetWordWrappedText(ref int fontSize, StringFormat stringFormat, float culumnWidth, Graphics g)
+        private List<string> GetWordWrappedText(ref int fontSize, StringFormat stringFormat, RectangleF rect, Graphics graphics)
         {
             const int MinFontSize = 10;
-
-            var wordWrapFormat = (StringFormat)stringFormat.Clone();
-            wordWrapFormat.FormatFlags = StringFormatFlags.NoWrap;
 
             var lines = new List<string>(MaxWordWrapLines);
 
@@ -61,7 +58,7 @@ namespace YouThumb
             {
                 keepTrying = false;
                 --fontSize;
-                
+
                 // reytry with a smaller font size
                 lines.Clear();
                 lines.Add("");
@@ -78,17 +75,17 @@ namespace YouThumb
                     }
                     lineToTest += w;
 
-                    if (g.MeasureString(lineToTest, tmpFont, origin, wordWrapFormat).Width > culumnWidth)
+                    var renderedSize = graphics.MeasureString(lineToTest, tmpFont, origin, stringFormat);
+                    if (renderedSize.Width >= rect.Width)
                     {
-                        if (lines.Count < MaxWordWrapLines)
-                        {
-                            lines.Add("");
-                        }
-                        else
+                        if (lines.Count == MaxWordWrapLines - 1 ||                      // last line
+                            rect.Height / (lines.Count + 1) <= renderedSize.Height)     // make sure it fits into each line's height
                         {
                             keepTrying = true;
                             break;
                         }
+
+                        lines.Add("");
                     }
 
                     if (lines[lines.Count - 1].Length != 0)
@@ -142,7 +139,7 @@ namespace YouThumb
             // 2) calculate proper draw region based on ratio
             // some youtube thumbs are shown in 4:3 ratio. so let's make it 4:3 ratio
             float marginPercentW = 0;
-            if ( tmpImage.Height * 16 == tmpImage.Width * 9)
+            if (tmpImage.Height * 16 == tmpImage.Width * 9)
             {
                 marginPercentW = 4 * 0.5F / 16F;
             }
@@ -156,11 +153,11 @@ namespace YouThumb
             // find some biggest fontsize we will begin with. GetWordWrappedText will find the proper smaller font size
             // that makes everything fit into the draw region
             var fontSize = Math.Min(tmpImage.Width, tmpImage.Height) / 2;
-            var lines = GetWordWrappedText(ref fontSize, stringFormat, rect.Width, graphics);
-            
+            var lines = GetWordWrappedText(ref fontSize, stringFormat, rect, graphics);
+
             // TODO: configuable
             var dropShadowWidth = Math.Max(5, fontSize / 12);
-            
+
             // 4) divide draw rect into N regions and draw each line.
             var font = new Font(cbFonts.SelectedItem as string, fontSize, FontStyle.Bold);
 
