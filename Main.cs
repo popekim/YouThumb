@@ -4,9 +4,11 @@
 // See the file LICENSE for copying permission.
 //-----------------------------------------------------------------------------
 
+//#define DO_PROFILE
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Drawing;
 using System.IO;
 using System.Net;
@@ -78,8 +80,8 @@ namespace YouThumb
                     var renderedSize = graphics.MeasureString(lineToTest, tmpFont, origin, stringFormat);
                     if (renderedSize.Width >= rect.Width)
                     {
-                        if (lines.Count == MaxWordWrapLines - 1 ||                      // last line
-                            rect.Height / (lines.Count + 1) <= renderedSize.Height)     // make sure it fits into each line's height
+                        if (lines.Count == MaxWordWrapLines ||                      // last line
+                            rect.Height / (lines.Count + 1) <= renderedSize.Height) // make sure it fits into each line's height
                         {
                             keepTrying = true;
                             break;
@@ -153,8 +155,14 @@ namespace YouThumb
             // find some biggest fontsize we will begin with. GetWordWrappedText will find the proper smaller font size
             // that makes everything fit into the draw region
             var fontSize = Math.Min(tmpImage.Width, tmpImage.Height) / 2;
+#if DO_PROFILE
+            Stopwatch profiler = Stopwatch.StartNew();
+#endif
             var lines = GetWordWrappedText(ref fontSize, stringFormat, rect, graphics);
-
+#if DO_PROFILE
+            profiler.Stop();
+            Console.WriteLine(String.Format("GetWorldWrappedText() took {0} ms", profiler.ElapsedMilliseconds));
+#endif
             // TODO: configuable
             var dropShadowWidth = Math.Max(5, fontSize / 12);
 
@@ -164,6 +172,8 @@ namespace YouThumb
             var numLines = lines.Count;
             float heightPerRow = rect.Height / numLines;
             rect.Height = heightPerRow;
+            rect.X = 0;
+            rect.Width = tmpImage.Width;        // now set the width to be max. it'll be centered aligned anyways
 
             for (int i = 0; i < numLines; ++i)
             {
@@ -264,6 +274,7 @@ namespace YouThumb
             {
                 return;
             }
+
             if (dlgSave.ShowDialog() == DialogResult.OK)
             {
                 try
