@@ -110,7 +110,7 @@ namespace YouThumb
             return lines;
         }
 
-        private void DrawText(Graphics g, string text, Font font, int dropShadowWidth, RectangleF rect, StringFormat stringFormat)
+        private void DrawText(Graphics graphics, string text, Font font, int dropShadowWidth, RectangleF rect, StringFormat stringFormat)
         {
             // 1) draw drop shadow
             for (int y = -dropShadowWidth; y <= dropShadowWidth; ++y)
@@ -121,12 +121,12 @@ namespace YouThumb
                     shadowRect.X = shadowRect.X - x;
                     shadowRect.Y = shadowRect.Y - y;
 
-                    g.DrawString(text, font, Brushes.Black, shadowRect, stringFormat);
+                    graphics.DrawString(text, font, Brushes.Black, shadowRect, stringFormat);
                 }
             }
 
             // 2) draw text
-            g.DrawString(text, font, Brushes.White, rect, stringFormat);
+            graphics.DrawString(text, font, Brushes.White, rect, stringFormat);
         }
 
         private void GenerateThumb()
@@ -175,6 +175,9 @@ namespace YouThumb
             var dropShadowWidth = Math.Max(5, fontSize / 12);
 
             // 4) divide draw rect into N regions and draw each line.
+#if DO_PROFILE
+            profiler = Stopwatch.StartNew();
+#endif
             var font = new Font(cbFonts.SelectedItem as string, fontSize, FontStyle.Bold);
 
             var numLines = lines.Count;
@@ -186,7 +189,10 @@ namespace YouThumb
                 DrawText(graphics, lines[i], font, dropShadowWidth, rect, stringFormat);
                 rect.Y += heightPerRow;
             }
-
+#if DO_PROFILE
+            profiler.Stop();
+            Console.WriteLine(String.Format("RenderFont() took {0} ms", profiler.ElapsedMilliseconds));
+#endif
             // 5) finally set the image to the picture box
             pbThumb.Image = tmpImage;
         }
@@ -234,6 +240,7 @@ namespace YouThumb
             currentVideoID = videoID;
             cachedImage = image;
             cachedTitle = title;
+            cachedTitle = "A B";
 
             return true;
         }
