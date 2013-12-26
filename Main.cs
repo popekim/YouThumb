@@ -68,6 +68,14 @@ namespace YouThumb
                 var tmpFont = new Font(fontName, fontSize, FontStyle.Bold);
                 foreach (var w in tokens)
                 {
+                    // make sure each word is not bigger
+                    var renderedSize = graphics.MeasureString(w, tmpFont, origin, stringFormat);
+                    if (renderedSize.Width >= rect.Width )
+                    {
+                        keepTrying = true;
+                        break;
+                    }
+
                     var lineToTest = new string(lines[lines.Count - 1].ToCharArray());
 
                     // if it's not first word pad a space
@@ -77,11 +85,11 @@ namespace YouThumb
                     }
                     lineToTest += w;
 
-                    var renderedSize = graphics.MeasureString(lineToTest, tmpFont, origin, stringFormat);
-                    if (renderedSize.Width >= rect.Width)
+                    renderedSize = graphics.MeasureString(lineToTest, tmpFont, origin, stringFormat);
+                    if (renderedSize.Width > rect.Width)
                     {
                         if (lines.Count == MaxWordWrapLines ||                      // last line
-                            rect.Height / (lines.Count + 1) <= renderedSize.Height) // make sure it fits into each line's height
+                            rect.Height / (lines.Count + 1) < renderedSize.Height)  // make sure it fits into each line's height
                         {
                             keepTrying = true;
                             break;
@@ -172,8 +180,6 @@ namespace YouThumb
             var numLines = lines.Count;
             float heightPerRow = rect.Height / numLines;
             rect.Height = heightPerRow;
-            rect.X = 0;
-            rect.Width = tmpImage.Width;        // now set the width to be max. it'll be centered aligned anyways
 
             for (int i = 0; i < numLines; ++i)
             {
