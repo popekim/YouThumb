@@ -58,7 +58,7 @@ namespace YouThumb
             | System.Windows.Forms.AnchorStyles.Right)));
             this.tbURL.Location = new System.Drawing.Point(124, 13);
             this.tbURL.Name = "tbURL";
-            this.tbURL.Size = new System.Drawing.Size(699, 20);
+            this.tbURL.Size = new System.Drawing.Size(1168, 20);
             this.tbURL.TabIndex = 1;
             this.tbURL.TextChanged += new System.EventHandler(this.tbURL_TextChanged);
             // 
@@ -85,7 +85,7 @@ namespace YouThumb
             // 
             this.pbThumb.Location = new System.Drawing.Point(15, 72);
             this.pbThumb.Name = "pbThumb";
-            this.pbThumb.Size = new System.Drawing.Size(610, 462);
+            this.pbThumb.Size = new System.Drawing.Size(1280, 720);
             this.pbThumb.SizeMode = System.Windows.Forms.PictureBoxSizeMode.AutoSize;
             this.pbThumb.TabIndex = 3;
             this.pbThumb.TabStop = false;
@@ -100,14 +100,14 @@ namespace YouThumb
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.AutoScroll = true;
-            this.ClientSize = new System.Drawing.Size(835, 546);
+            this.ClientSize = new System.Drawing.Size(1304, 812);
             this.Controls.Add(this.pbThumb);
             this.Controls.Add(this.cbFonts);
             this.Controls.Add(this.tbURL);
             this.Controls.Add(this.label2);
             this.Controls.Add(this.label1);
             this.Name = "frmMain";
-            this.Text = "YouTube Thumbnail Generator";
+            this.Text = "YouTube Thumbnail Generator by Pope Kim (www.popekim.com)";
             this.Load += new System.EventHandler(this.frmMain_Load);
             ((System.ComponentModel.ISupportInitialize)(this.pbThumb)).EndInit();
             this.ResumeLayout(false);

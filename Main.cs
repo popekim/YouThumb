@@ -42,21 +42,84 @@ namespace YouThumb
             return id;
         }
 
-        private void tryNewRender()
+        private static readonly int MaxWordWrapLines = 3;
+        private List<string> GetWordWrappedText(ref int fontSize, StringFormat stringFormat, float culumnWidth, Graphics g)
         {
-            var videoID = getVideoID(tbURL.Text);
-            if (videoID == string.Empty)
+            const int MinFontSize = 10;
+
+            var wordWrapFormat = (StringFormat)stringFormat.Clone();
+            wordWrapFormat.FormatFlags = StringFormatFlags.NoWrap;
+
+            var lines = new List<string>(MaxWordWrapLines);
+
+            string[] tokens = cachedTitle.Split(' ');
+
+            var origin = new PointF(0, 0);
+            bool keepTrying = false;
+            var fontName = cbFonts.SelectedItem as string;
+            do
             {
-                return;
+                keepTrying = false;
+                --fontSize;
+                
+                // reytry with a smaller font size
+                lines.Clear();
+                lines.Add("");
+
+                var tmpFont = new Font(fontName, fontSize, FontStyle.Bold);
+                foreach (var w in tokens)
+                {
+                    var lineToTest = new string(lines[lines.Count - 1].ToCharArray());
+
+                    // if it's not first word pad a space
+                    if (lineToTest.Length != 0)
+                    {
+                        lineToTest += " ";
+                    }
+                    lineToTest += w;
+
+                    if (g.MeasureString(lineToTest, tmpFont, origin, wordWrapFormat).Width > culumnWidth)
+                    {
+                        if (lines.Count < MaxWordWrapLines)
+                        {
+                            lines.Add("");
+                        }
+                        else
+                        {
+                            keepTrying = true;
+                            break;
+                        }
+                    }
+
+                    if (lines[lines.Count - 1].Length != 0)
+                    {
+                        lines[lines.Count - 1] += " ";
+                    }
+                    lines[lines.Count - 1] += w;
+                }
+            }
+            while (keepTrying && fontSize > MinFontSize);
+
+            return lines;
+        }
+
+        private void DrawText(Graphics g, string text, Font font, int dropShadowWidth, RectangleF rect, StringFormat stringFormat)
+        {
+            // 1) draw drop shadow
+            for (int y = -dropShadowWidth; y <= dropShadowWidth; ++y)
+            {
+                for (int x = -dropShadowWidth; x <= dropShadowWidth; ++x)
+                {
+                    var shadowRect = rect;
+                    shadowRect.X = shadowRect.X - x;
+                    shadowRect.Y = shadowRect.Y - y;
+
+                    g.DrawString(text, font, Brushes.Black, shadowRect, stringFormat);
+                }
             }
 
-            // got valid youtube id - so let's load youtube image
-            var shouldGenerateNewThumb = retrieveYoutubeVideoData(videoID);
-
-            if (shouldGenerateNewThumb)
-            {
-                GenerateThumb();
-            }
+            // 2) draw text
+            g.DrawString(text, font, Brushes.White, rect, stringFormat);
         }
 
         private void GenerateThumb()
@@ -66,47 +129,52 @@ namespace YouThumb
                 return;
             }
 
-            //Bitmap myBitmap = new Bitmap(@"C:\Users\Scott\desktop\blank.bmp");
+            // 1) some setup
             var tmpImage = (Image)cachedImage.Clone();
-            Graphics g = Graphics.FromImage(tmpImage);
 
-            g.TextRenderingHint = System.Drawing.Text.TextRenderingHint.AntiAlias;
+            Graphics graphics = Graphics.FromImage(tmpImage);
+            graphics.TextRenderingHint = System.Drawing.Text.TextRenderingHint.AntiAlias;
 
             StringFormat stringFormat = new StringFormat();
             stringFormat.Alignment = StringAlignment.Center;
             stringFormat.LineAlignment = StringAlignment.Center;
 
-
-            // TODO: configuable
-            const float safeArea = 0.05f;
-            float safeW = tmpImage.Width * safeArea;
-            float safeH = tmpImage.Height * safeArea;
-
-            var rect = new RectangleF(safeW, safeH, tmpImage.Width - safeW * 2, tmpImage.Height - safeH * 2);
-
-            // TODO: configuable for 10
-            var fontSize = Math.Min(tmpImage.Width, tmpImage.Height) / 10;
-
-            var font = new Font(cbFonts.SelectedItem as string, fontSize, FontStyle.Bold);
-
-            // draw drop shadow
-            // TODO: configuable
-            const int dropShadowWidth = 5;
-
-            for (int y = -dropShadowWidth; y <= dropShadowWidth; ++y)
+            // 2) calculate proper draw region based on ratio
+            // some youtube thumbs are shown in 4:3 ratio. so let's make it 4:3 ratio
+            float marginPercentW = 0;
+            if ( tmpImage.Height * 16 == tmpImage.Width * 9)
             {
-                for (int x = -dropShadowWidth; x <= dropShadowWidth; ++x)
-                {
-                    var shadowRect = rect;
-                    shadowRect.X = shadowRect.X - x;
-                    shadowRect.Y = shadowRect.Y - y;
-
-                    g.DrawString(cachedTitle, font, Brushes.Black, shadowRect, stringFormat);
-                }
+                marginPercentW = 4 * 0.5F / 16F;
             }
 
-            g.DrawString(cachedTitle, font, Brushes.White, rect, stringFormat);
+            var rect = new RectangleF(marginPercentW * tmpImage.Width,
+                0,
+                tmpImage.Width - marginPercentW * tmpImage.Width * 2,
+                tmpImage.Height);
 
+            // 3) properly word wrap. (.NET function text-wraps at character level, but we want word-level wrap
+            // find some biggest fontsize we will begin with. GetWordWrappedText will find the proper smaller font size
+            // that makes everything fit into the draw region
+            var fontSize = Math.Min(tmpImage.Width, tmpImage.Height) / 2;
+            var lines = GetWordWrappedText(ref fontSize, stringFormat, rect.Width, graphics);
+            
+            // TODO: configuable
+            var dropShadowWidth = Math.Max(5, fontSize / 12);
+            
+            // 4) divide draw rect into N regions and draw each line.
+            var font = new Font(cbFonts.SelectedItem as string, fontSize, FontStyle.Bold);
+
+            var numLines = lines.Count;
+            float heightPerRow = rect.Height / numLines;
+            rect.Height = heightPerRow;
+
+            for (int i = 0; i < numLines; ++i)
+            {
+                DrawText(graphics, lines[i], font, dropShadowWidth, rect, stringFormat);
+                rect.Y += heightPerRow;
+            }
+
+            // 5) finally set the image to the picture box
             pbThumb.Image = tmpImage;
         }
 
@@ -159,7 +227,19 @@ namespace YouThumb
 
         private void tbURL_TextChanged(object sender, EventArgs e)
         {
-            tryNewRender();
+            var videoID = getVideoID(tbURL.Text);
+            if (videoID == string.Empty)
+            {
+                return;
+            }
+
+            // got valid youtube id - so let's load youtube image
+            var shouldGenerateNewThumb = retrieveYoutubeVideoData(videoID);
+
+            if (shouldGenerateNewThumb)
+            {
+                GenerateThumb();
+            }
         }
 
         private void frmMain_Load(object sender, EventArgs e)
