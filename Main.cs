@@ -1,5 +1,5 @@
 ﻿//----------------------------------------------------------------------------
-// Copyright (c) 2013 Pope Kim (www.popekim.com)
+// Copyright (c) 2013 - 2014 Pope Kim (www.popekim.com)
 //
 // See the file LICENSE for copying permission.
 //-----------------------------------------------------------------------------
@@ -270,13 +270,24 @@ namespace YouThumb
             }
             cbFonts.Items.AddRange(fontNameList.ToArray());
 
-            // TODO: font name caching from last instance
-            var index = fontNameList.FindIndex(f => f == "Verdana");
-            cbFonts.SelectedIndex = (index >= 0) ? index : 0;
+            var font = Properties.Settings.Default["fontname"];
+            int fontIndex = -1;
+            if (font != null)
+            {
+                fontIndex = fontNameList.FindIndex(f => f == font.ToString());
+            }
+
+            if (fontIndex < 0)
+            {
+                fontIndex = fontNameList.FindIndex(f => f == "Verdana");
+            }
+
+            cbFonts.SelectedIndex = (fontIndex >= 0) ? fontIndex : 0;
         }
 
         private void cbFonts_SelectedIndexChanged(object sender, EventArgs e)
         {
+            Properties.Settings.Default["fontname"] = cbFonts.SelectedItem as string;
             GenerateThumb();
         }
 
@@ -298,6 +309,11 @@ namespace YouThumb
                     MessageBox.Show("failed to save " + dlgSave.FileName, "FAIL", MessageBoxButtons.OK);
                 }
             }
+        }
+
+        private void frmMain_FormClosing(object sender, FormClosingEventArgs e)
+        {
+            Properties.Settings.Default.Save();
         }
     }
 }

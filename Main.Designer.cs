@@ -108,6 +108,7 @@ namespace YouThumb
             this.Controls.Add(this.label1);
             this.Name = "frmMain";
             this.Text = "YouTube Thumbnail Generator by Pope Kim (www.popekim.com)";
+            this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.frmMain_FormClosing);
             this.Load += new System.EventHandler(this.frmMain_Load);
             ((System.ComponentModel.ISupportInitialize)(this.pbThumb)).EndInit();
             this.ResumeLayout(false);
