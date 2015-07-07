@@ -4,7 +4,7 @@ This is a simple tool that automatically embed the title onto youtube thumbnail.
 
 Standalone Executable Download
 ------------------------------
-* [Version 1.0.2 (August 16, 2014)](https://app.box.com/s/z33y5bhq79g2a0oncfvs)
+* [Version 1.1.0 (July 7, 2014)](https://app.box.com/s/753oap5puv0h47n9vfyz6b426mu6ptcc)
 
 How to Use
 ----------
