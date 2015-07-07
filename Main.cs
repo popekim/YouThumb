@@ -226,14 +226,26 @@ namespace YouThumb
             string title = null;
             try
             {
-                var videoEntryUrl = new Uri(String.Format(@"http://gdata.youtube.com/feeds/api/videos/{0}", videoID));
-                XmlDocument xmlDoc = new XmlDocument();
-                xmlDoc.Load(new MemoryStream(new WebClient().DownloadData(videoEntryUrl)));
+                // HACK: read whole html page and parse title. It's to avoid oAuth request to call google api :(
+                var videoPageUrl = new Uri(String.Format(@"https://www.youtube.com/watch?v={0}", videoID));
+                   
+                using (var webclient = new WebClient())
+                using (var memoryStream = new MemoryStream(webclient.DownloadData(videoPageUrl)))
+                using (var streamReader = new StreamReader(memoryStream))
+                {
+                    var contents = streamReader.ReadToEnd();
+                    
+                    const string beginToken = "<title>";
+                    const string endToken = " - YouTube</title>";
+                    var startIndex = contents.IndexOf(beginToken) + beginToken.Length;
+                    var endIndex = contents.IndexOf(endToken);
 
-                title = xmlDoc.GetElementsByTagName("title")[0].InnerText;
+                    title = contents.Substring(startIndex, endIndex - startIndex);
+                }
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                Debug.WriteLine(ex);
                 // TODO: show error
             }
 
