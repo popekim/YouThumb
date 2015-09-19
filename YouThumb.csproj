@@ -9,9 +9,10 @@
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>YouThumb</RootNamespace>
     <AssemblyName>YouThumb</AssemblyName>
-    <TargetFrameworkVersion>v2.0</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
-    <TargetFrameworkProfile />
+    <TargetFrameworkProfile>
+    </TargetFrameworkProfile>
     <IsWebBootstrapper>false</IsWebBootstrapper>
     <PublishUrl>publish\</PublishUrl>
     <Install>true</Install>
@@ -38,6 +39,7 @@
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
+    <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <PlatformTarget>AnyCPU</PlatformTarget>
@@ -47,6 +49,7 @@
     <DefineConstants>TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
+    <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
   <PropertyGroup>
     <ManifestCertificateThumbprint>ACFC24FB94F1539C4146AF2F817D9483931CAA83</ManifestCertificateThumbprint>
@@ -60,11 +63,17 @@
   <PropertyGroup>
     <TargetZone>LocalIntranet</TargetZone>
   </PropertyGroup>
+  <PropertyGroup />
   <PropertyGroup>
-    <ApplicationManifest>Properties\app.manifest</ApplicationManifest>
+    <SignManifests>false</SignManifests>
   </PropertyGroup>
+  <PropertyGroup />
+  <PropertyGroup />
+  <PropertyGroup />
+  <PropertyGroup />
+  <PropertyGroup />
   <PropertyGroup>
-    <SignManifests>true</SignManifests>
+    <NoWin32Manifest>true</NoWin32Manifest>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
