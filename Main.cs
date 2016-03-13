@@ -10,6 +10,8 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
+using System.Drawing.Drawing2D;
+using System.Drawing.Imaging;
 using System.IO;
 using System.Net;
 using System.Text.RegularExpressions;
@@ -205,16 +207,27 @@ namespace YouThumb
                 return false;
             }
 
-            var thumbURL = String.Format(@"https://img.youtube.com/vi/{0}/maxresdefault.jpg", videoID);
+            string [] modesToTry = { "maxresdefault", "mqdefault" };
 
             Image image = null;
-            try
+
+            foreach (var mode in modesToTry)
             {
-                image = Image.FromStream(new MemoryStream(new WebClient().DownloadData(thumbURL)));
-            }
-            catch (Exception)
-            {
-                // TODO: show error
+                var thumbURL = $"https://img.youtube.com/vi/{videoID}/{mode}.jpg";
+
+                try
+                {
+                    image = Image.FromStream(new MemoryStream(new WebClient().DownloadData(thumbURL)));
+                }
+                catch (Exception)
+                {
+                    // TODO: show error
+                }
+
+                if (image != null)
+                {
+                    break;
+                }
             }
 
             if (image == null)
@@ -250,10 +263,42 @@ namespace YouThumb
             }
 
             currentVideoID = videoID;
+            if ( image.Height < 1080 )
+            {
+                var scale = 1080.0 / image.Height;
+                var w = (int)(image.Width * scale);
+                var h = (int)(image.Height * scale);
+                image = ResizeImage(image, w, h);
+            }
             cachedImage = image;
             cachedTitle = title;
 
             return true;
+
+        }
+        public static Bitmap ResizeImage(Image image, int width, int height)
+        {
+            var destRect = new Rectangle(0, 0, width, height);
+            var destImage = new Bitmap(width, height);
+
+            destImage.SetResolution(image.HorizontalResolution, image.VerticalResolution);
+
+            using (var graphics = Graphics.FromImage(destImage))
+            {
+                graphics.CompositingMode = CompositingMode.SourceCopy;
+                graphics.CompositingQuality = CompositingQuality.HighQuality;
+                graphics.InterpolationMode = InterpolationMode.HighQualityBicubic;
+                graphics.SmoothingMode = SmoothingMode.HighQuality;
+                graphics.PixelOffsetMode = PixelOffsetMode.HighQuality;
+
+                using (var wrapMode = new ImageAttributes())
+                {
+                    wrapMode.SetWrapMode(WrapMode.TileFlipXY);
+                    graphics.DrawImage(image, destRect, 0, 0, image.Width, image.Height, GraphicsUnit.Pixel, wrapMode);
+                }
+            }
+
+            return destImage;
         }
 
         private void tbURL_TextChanged(object sender, EventArgs e)
