@@ -5,5 +5,11 @@
     <Setting Name="fontname" Type="System.String" Scope="User">
       <Value Profile="(Default)">verdana</Value>
     </Setting>
+    <Setting Name="clientID" Type="System.String" Scope="User">
+      <Value Profile="(Default)" />
+    </Setting>
+    <Setting Name="clientSecret" Type="System.String" Scope="User">
+      <Value Profile="(Default)" />
+    </Setting>
   </Settings>
 </SettingsFile>

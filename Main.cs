@@ -1,7 +1,7 @@
 ﻿//----------------------------------------------------------------------------
-// Copyright (c) 2013 - 2014 Pope Kim (www.popekim.com)
+// Copyright (c) 2013 - 2016 Pope Kim (www.popekim.com)
 //
-// See the file LICENSE for copying permission.
+// See LICENSE file for license info
 //-----------------------------------------------------------------------------
 
 //#define DO_PROFILE
@@ -16,15 +16,18 @@ using System.IO;
 using System.Net;
 using System.Text.RegularExpressions;
 using System.Windows.Forms;
-using System.Xml;
 
 namespace YouThumb
 {
     public partial class frmMain : Form
     {
+        private YoutubeClient mYoutubeClient;
+
         public frmMain()
         {
             InitializeComponent();
+
+            mYoutubeClient = new YoutubeClient(webBrowser);
         }
 
         // from: http://stackoverflow.com/questions/3652046/c-sharp-regex-to-get-video-id-from-youtube-and-vimeo-by-url
@@ -72,7 +75,7 @@ namespace YouThumb
                 {
                     // make sure each word is not bigger
                     var renderedSize = graphics.MeasureString(w, tmpFont, origin, stringFormat);
-                    if (renderedSize.Width >= rect.Width )
+                    if (renderedSize.Width >= rect.Width)
                     {
                         keepTrying = true;
                         break;
@@ -207,7 +210,7 @@ namespace YouThumb
                 return false;
             }
 
-            string [] modesToTry = { "maxresdefault", "mqdefault" };
+            string[] modesToTry = { "maxresdefault", "mqdefault" };
 
             Image image = null;
 
@@ -241,13 +244,13 @@ namespace YouThumb
             {
                 // HACK: read whole html page and parse title. It's to avoid oAuth request to call google api :(
                 var videoPageUrl = new Uri(String.Format(@"https://www.youtube.com/watch?v={0}", videoID));
-                   
+
                 using (var webclient = new WebClient())
                 using (var memoryStream = new MemoryStream(webclient.DownloadData(videoPageUrl)))
                 using (var streamReader = new StreamReader(memoryStream))
                 {
                     var contents = streamReader.ReadToEnd();
-                    
+
                     const string beginToken = "<title>";
                     const string endToken = " - YouTube</title>";
                     var startIndex = contents.IndexOf(beginToken) + beginToken.Length;
@@ -263,7 +266,7 @@ namespace YouThumb
             }
 
             currentVideoID = videoID;
-            if ( image.Height < 1080 )
+            if (image.Height < 1080)
             {
                 var scale = 1080.0 / image.Height;
                 var w = (int)(image.Width * scale);
@@ -327,24 +330,24 @@ namespace YouThumb
             }
             cbFonts.Items.AddRange(fontNameList.ToArray());
 
-            var font = Properties.Settings.Default["fontname"];
-            int fontIndex = -1;
-            if (font != null)
-            {
-                fontIndex = fontNameList.FindIndex(f => f == font.ToString());
-            }
-
+            var font = Properties.Settings.Default[UserSettings.FONTNAME].ToString() ;
+            int fontIndex = fontNameList.FindIndex(f => f == font);
             if (fontIndex < 0)
             {
                 fontIndex = fontNameList.FindIndex(f => f == "Verdana");
             }
 
             cbFonts.SelectedIndex = (fontIndex >= 0) ? fontIndex : 0;
+
+            textboxClientID.Text = Properties.Settings.Default[UserSettings.CLIENT_ID].ToString();
+            textboxClientSecret.Text = Properties.Settings.Default[UserSettings.CLIENT_SECRET].ToString();
+
+            refreshLoginButton();            
         }
 
         private void cbFonts_SelectedIndexChanged(object sender, EventArgs e)
         {
-            Properties.Settings.Default["fontname"] = cbFonts.SelectedItem as string;
+            Properties.Settings.Default[UserSettings.FONTNAME] = cbFonts.SelectedItem as string;
             GenerateThumb();
         }
 
@@ -371,6 +374,28 @@ namespace YouThumb
         private void frmMain_FormClosing(object sender, FormClosingEventArgs e)
         {
             Properties.Settings.Default.Save();
+        }
+        
+        private void buttonLogin_Click(object sender, EventArgs e)
+        {
+            mYoutubeClient.Login();
+        }
+
+        private void refreshLoginButton()
+        {
+            buttonLogin.Enabled = (textboxClientID.Text.Length > 0 && textboxClientSecret.Text.Length > 0);
+        }
+
+        private void textboxClientID_TextChanged(object sender, EventArgs e)
+        {
+            Properties.Settings.Default[UserSettings.CLIENT_ID] = textboxClientID.Text;
+            refreshLoginButton();
+        }
+
+        private void textboxClientSecret_TextChanged(object sender, EventArgs e)
+        {
+            Properties.Settings.Default[UserSettings.CLIENT_SECRET] = textboxClientSecret.Text;
+            refreshLoginButton();
         }
     }
 }

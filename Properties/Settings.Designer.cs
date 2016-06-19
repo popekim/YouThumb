@@ -34,5 +34,29 @@ namespace YouThumb.Properties {
                 this["fontname"] = value;
             }
         }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
+        public string clientID {
+            get {
+                return ((string)(this["clientID"]));
+            }
+            set {
+                this["clientID"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
+        public string clientSecret {
+            get {
+                return ((string)(this["clientSecret"]));
+            }
+            set {
+                this["clientSecret"] = value;
+            }
+        }
     }
 }
