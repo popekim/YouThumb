@@ -15,8 +15,8 @@ How to Use
 
 Requirements and Platforms
 --------------------------
-* .Net 2.0 Framework needs to be installed
-* Only tested platform is Windows 7
+* .Net 4.5 Framework needs to be installed
+* Only tested platform is Windows 10
 
 License
 -------
