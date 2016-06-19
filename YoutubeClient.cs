@@ -1,6 +1,7 @@
 ﻿using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Net.Http;
 using System.Threading.Tasks;
 using System.Windows.Forms;
@@ -43,6 +44,19 @@ namespace YouThumb
             mLoginChecker.Start();
         }
 
+        public async Task LogoutAsync()
+        {
+            if (IsConnected)
+            {
+                var httpClient = new HttpClient();
+                httpClient.BaseAddress = new Uri("https://accounts.google.com");
+
+                var response = await httpClient.GetAsync($"o/oauth2/revoke?token={mAccessToken}").ConfigureAwait(false);
+                Debug.Assert(response.IsSuccessStatusCode);
+                mAccessToken = null;
+            }
+        }
+
         public async Task Test()
         {
             var httpClient = createWebClient();
@@ -64,7 +78,7 @@ namespace YouThumb
             return httpClient;
         }
 
-        private void onTimedEvent(object sender, EventArgs e)
+        private async void onTimedEvent(object sender, EventArgs e)
         {
             // autocode is returned through browser title
             const string AUTHCODE_PARAM = "Success code=";
@@ -75,13 +89,13 @@ namespace YouThumb
                 mLoginChecker.Stop();
 
                 string authCode = title.Substring(AUTHCODE_PARAM.Length);
-                requestAccessToken(authCode);
+                await requestAccessTokenAsync(authCode);
             }
         }
 
         // TODO: reconfirm
         // async void is okay for Event Handler.
-        private async void requestAccessToken(string authCode)
+        private async Task requestAccessTokenAsync(string authCode)
         {
             HttpClient httpClient = new HttpClient();
             httpClient.BaseAddress = new Uri("https://accounts.google.com");

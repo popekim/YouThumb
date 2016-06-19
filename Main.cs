@@ -374,8 +374,17 @@ namespace YouThumb
         private void frmMain_FormClosing(object sender, FormClosingEventArgs e)
         {
             Properties.Settings.Default.Save();
+            logoutAsync();
+            while (mYoutubeClient.IsConnected)
+            {
+            }
         }
-        
+
+        private async void logoutAsync()
+        {
+            await mYoutubeClient.LogoutAsync();
+        }
+
         private void buttonLogin_Click(object sender, EventArgs e)
         {
             mYoutubeClient.Login();
