@@ -21,12 +21,14 @@ namespace YouThumb
         private string mAccessToken;
         private string mRefreshToken;
         private WebBrowser mWebBrowser;
+        private IYoutubeLoginCallback mCaller;
 
         // NOTE: using Windows.Form.Timer to access WebBrowser control from mainthread.
         private Timer mLoginChecker = new Timer();
 
-        public YoutubeClient(WebBrowser webBrowser)
+        public YoutubeClient(WebBrowser webBrowser, IYoutubeLoginCallback caller)
         {
+            mCaller = caller;
             mWebBrowser = webBrowser;
             mLoginChecker.Tick += new EventHandler(onTimedEvent);
         }
@@ -69,6 +71,17 @@ namespace YouThumb
             }
         }
 
+        public async Task<Response.VideoListResponse> GetVideoDetail(string videoID)
+        {
+            using (var httpClient = createWebClient())
+            {
+                var response = await httpClient.GetAsync($"/youtube/v3/videos?part=snippet&id={videoID}");
+
+                var bodyJSON = await response.Content.ReadAsStringAsync();
+                return JsonConvert.DeserializeObject<Response.VideoListResponse>(bodyJSON);
+            }
+        }
+
         /// <summary>
         /// 
         /// </summary>
@@ -108,6 +121,8 @@ namespace YouThumb
 
                 string authCode = title.Substring(AUTHCODE_PARAM.Length);
                 await requestAccessTokenAsync(authCode);
+
+                mCaller.OnLoggedIn();
             }
         }
 
@@ -136,12 +151,6 @@ namespace YouThumb
                     var googleAuthResponse = JsonConvert.DeserializeObject<Response.GoogleAuth>(responseBody);
                     mAccessToken = googleAuthResponse.access_token;
                     mRefreshToken = googleAuthResponse.refresh_token;
-
-                    var contentDetails = await GetMyContentDetails();
-                    Debug.Assert(contentDetails.items.Count > 0);
-                    string uploadedPlaylist = contentDetails.items[0].contentDetails.relatedPlaylists.uploads;
-
-                    List<string> videoIDs = await GetVideoList(uploadedPlaylist);
                 }
             }
         }

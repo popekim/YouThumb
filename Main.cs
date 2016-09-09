@@ -15,19 +15,21 @@ using System.Drawing.Imaging;
 using System.IO;
 using System.Net;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 using System.Windows.Forms;
 
 namespace YouThumb
 {
-    public partial class frmMain : Form
+    public partial class frmMain : Form, IYoutubeLoginCallback
     {
         private YoutubeClient mYoutubeClient;
+        private List<VideoDetail> mVideoDetails = new List<VideoDetail>();
 
         public frmMain()
         {
             InitializeComponent();
 
-            mYoutubeClient = new YoutubeClient(webBrowser);
+            mYoutubeClient = new YoutubeClient(webBrowser, this);
         }
 
         // from: http://stackoverflow.com/questions/3652046/c-sharp-regex-to-get-video-id-from-youtube-and-vimeo-by-url
@@ -405,6 +407,66 @@ namespace YouThumb
         {
             Properties.Settings.Default[UserSettings.CLIENT_SECRET] = textboxClientSecret.Text;
             refreshLoginButton();
+        }
+
+        public void OnLoggedIn()
+        {
+            Debug.Assert(mYoutubeClient.IsConnected);
+
+            Task.Run(async () => { await populateVideoDetails(); }).Wait();
+        }
+
+        private async Task populateVideoDetails()
+        {
+            var contentDetails = await mYoutubeClient.GetMyContentDetails();
+            Debug.Assert(contentDetails.items.Count > 0);
+            string uploadedPlaylist = contentDetails.items[0].contentDetails.relatedPlaylists.uploads;
+
+            List<string> videoIDs = await mYoutubeClient.GetVideoList(uploadedPlaylist, 10);
+
+            var tasks = new Task<Response.VideoListResponse>[videoIDs.Count];
+            for (int i = 0; i < videoIDs.Count; ++i)
+            {
+                tasks[i] = mYoutubeClient.GetVideoDetail(videoIDs[i]);
+            }
+
+            await Task.WhenAll(tasks).ContinueWith(a =>
+            {
+                mVideoDetails.Clear();
+
+                var videos = a.Result;
+                foreach (var video in videos)
+                {
+                    var snippet = video.items[0].snippet;
+
+                    uint biggestSize = 0;
+                    string largestThumbnailURL = null;
+                    foreach (var thumbnail in snippet.thumbnails)
+                    {
+                        var size = thumbnail.Value.width * thumbnail.Value.height;
+                        if (size > biggestSize)
+                        {
+                            biggestSize = size;
+                            largestThumbnailURL = thumbnail.Value.url;
+                        }
+                    }
+
+                    var detail = new VideoDetail()
+                    {
+                        Title = snippet.title,
+                        LargestThumbnailURL = largestThumbnailURL
+                    };
+
+                    // live video has this thumbnail address. Exclude it.
+                    if (!largestThumbnailURL.Contains("maxresdefault_live"))
+                    {
+                        mVideoDetails.Add(detail);
+                    }
+                }
+            });
+
+
+            
         }
     }
 }
