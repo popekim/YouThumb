@@ -104,7 +104,10 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="GoogleAuthResponse.cs" />
+    <Compile Include="Response\ContentDetails.cs" />
+    <Compile Include="Response\ContentDetailsResponse.cs" />
+    <Compile Include="Response\ContentDetailsItem.cs" />
+    <Compile Include="Response\GoogleAuthResponse.cs" />
     <Compile Include="Main.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -113,6 +116,11 @@
     </Compile>
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Response\PageInfo.cs" />
+    <Compile Include="Response\PlaylistItem.cs" />
+    <Compile Include="Response\PlaylistItemContentDetails.cs" />
+    <Compile Include="Response\PlaylistItemsResponse.cs" />
+    <Compile Include="Response\RelatedPlaylists.cs" />
     <Compile Include="UserSettings.cs" />
     <Compile Include="YoutubeClient.cs" />
     <EmbeddedResource Include="Main.resx">
@@ -139,6 +147,7 @@
       <DependentUpon>Settings.settings</DependentUpon>
       <DesignTimeSharedInput>True</DesignTimeSharedInput>
     </Compile>
+    <None Include="README.md" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
