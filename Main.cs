@@ -114,6 +114,7 @@ namespace YouThumb
 
         private void DrawText(Graphics graphics, string text, Font font, int dropShadowWidth, RectangleF rect, StringFormat stringFormat)
         {
+            /*
             // 1) draw drop shadow
             for (int y = -dropShadowWidth; y <= dropShadowWidth; ++y)
             {
@@ -126,6 +127,7 @@ namespace YouThumb
                     graphics.DrawString(text, font, Brushes.Black, shadowRect, stringFormat);
                 }
             }
+            */
 
             // 2) draw text
             graphics.DrawString(text, font, Brushes.White, rect, stringFormat);
@@ -139,7 +141,24 @@ namespace YouThumb
             }
 
             // 1) some setup
-            var tmpImage = (Image)cachedImage.Clone();
+            var tmpImage = new Bitmap(cachedImage.Width, cachedImage.Height);
+            var copyImage = (Image)cachedImage.Clone();
+
+            Point[] polygonPoints = new Point[4];
+            polygonPoints[0] = new Point(0, 0);
+            polygonPoints[1] = new Point(1149, 0);
+            polygonPoints[2] = new Point(778, cachedImage.Height);
+            polygonPoints[3] = new Point(0, cachedImage.Height);
+
+            using (Graphics g = Graphics.FromImage(tmpImage))
+            {
+                g.FillRectangle(Brushes.White, new Rectangle(0, 0, cachedImage.Width, cachedImage.Height));
+                g.DrawImage(copyImage, new Point(cachedImage.Width / 3, 0));
+
+                g.SmoothingMode = SmoothingMode.AntiAlias;
+                g.DrawPolygon(Pens.Gray, polygonPoints);
+                g.FillPolygon(Brushes.Gray, polygonPoints);
+            }
 
             Graphics graphics = Graphics.FromImage(tmpImage);
             graphics.TextRenderingHint = System.Drawing.Text.TextRenderingHint.AntiAlias;
