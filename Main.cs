@@ -112,27 +112,6 @@ namespace YouThumb
             return lines;
         }
 
-        private void DrawText(Graphics graphics, string text, Font font, int dropShadowWidth, RectangleF rect, StringFormat stringFormat)
-        {
-            /*
-            // 1) draw drop shadow
-            for (int y = -dropShadowWidth; y <= dropShadowWidth; ++y)
-            {
-                for (int x = -dropShadowWidth; x <= dropShadowWidth; ++x)
-                {
-                    var shadowRect = rect;
-                    shadowRect.X = shadowRect.X - x;
-                    shadowRect.Y = shadowRect.Y - y;
-
-                    graphics.DrawString(text, font, Brushes.Black, shadowRect, stringFormat);
-                }
-            }
-            */
-
-            // 2) draw text
-            graphics.DrawString(text, font, Brushes.White, rect, stringFormat);
-        }
-
         private void GenerateThumb()
         {
             if (cachedImage == null)
@@ -144,46 +123,47 @@ namespace YouThumb
             var tmpImage = new Bitmap(cachedImage.Width, cachedImage.Height);
             var copyImage = (Image)cachedImage.Clone();
 
+            var backgroundColor = new SolidBrush(Color.FromArgb(42, 42, 42));
+            var backgroundEdgeColor = new Pen(Color.FromArgb(42, 42, 42));
+
+            int thumbWidth = tmpImage.Width;
+            int thumbHeight = tmpImage.Height;
+
+            const int margin = 75;
+
+            // make left background point
             Point[] polygonPoints = new Point[4];
             polygonPoints[0] = new Point(0, 0);
-            polygonPoints[1] = new Point(1149, 0);
-            polygonPoints[2] = new Point(778, cachedImage.Height);
-            polygonPoints[3] = new Point(0, cachedImage.Height);
+            polygonPoints[1] = new Point(thumbWidth / 2 + margin, 0);
+            polygonPoints[2] = new Point(thumbWidth / 2 - margin, thumbHeight);
+            polygonPoints[3] = new Point(0, thumbHeight);
 
             using (Graphics g = Graphics.FromImage(tmpImage))
             {
-                g.FillRectangle(Brushes.White, new Rectangle(0, 0, cachedImage.Width, cachedImage.Height));
+                // draw thumbnail 30% to the right
                 g.DrawImage(copyImage, new Point(cachedImage.Width / 3, 0));
-
+                // draw left background
                 g.SmoothingMode = SmoothingMode.AntiAlias;
-                g.DrawPolygon(Pens.Gray, polygonPoints);
-                g.FillPolygon(Brushes.Gray, polygonPoints);
+                g.DrawPolygon(backgroundEdgeColor, polygonPoints);
+                g.FillPolygon(backgroundColor, polygonPoints);
             }
 
             Graphics graphics = Graphics.FromImage(tmpImage);
             graphics.TextRenderingHint = System.Drawing.Text.TextRenderingHint.AntiAlias;
 
             StringFormat stringFormat = new StringFormat();
-            stringFormat.Alignment = StringAlignment.Center;
+            stringFormat.Alignment = StringAlignment.Near;
             stringFormat.LineAlignment = StringAlignment.Center;
 
-            // 2) calculate proper draw region based on ratio
-            // some youtube thumbs are shown in 4:3 ratio. so let's make it 4:3 ratio
-            float marginPercentW = 0;
-            if (tmpImage.Height * 16 == tmpImage.Width * 9)
-            {
-                marginPercentW = 4 * 0.5F / 16F;
-            }
+            var rect = new RectangleF(margin,
+                margin,
+                thumbWidth/2 - margin * 3,
+                thumbHeight - margin * 2);
 
-            var rect = new RectangleF(marginPercentW * tmpImage.Width,
-                0,
-                tmpImage.Width - marginPercentW * tmpImage.Width * 2,
-                tmpImage.Height);
-
-            // 3) properly word wrap. (.NET function text-wraps at character level, but we want word-level wrap
+            // 2) properly word wrap. (.NET function text-wraps at character level, but we want word-level wrap
             // find some biggest fontsize we will begin with. GetWordWrappedText will find the proper smaller font size
             // that makes everything fit into the draw region
-            var fontSize = Math.Min(tmpImage.Width, tmpImage.Height) / 2;
+            var fontSize = Math.Min(thumbWidth, thumbHeight) / 2;
 #if DO_PROFILE
             Stopwatch profiler = Stopwatch.StartNew();
 #endif
@@ -192,10 +172,7 @@ namespace YouThumb
             profiler.Stop();
             Console.WriteLine(String.Format("GetWorldWrappedText() took {0} ms", profiler.ElapsedMilliseconds));
 #endif
-            // TODO: configuable
-            var dropShadowWidth = Math.Max(5, fontSize / 12);
-
-            // 4) divide draw rect into N regions and draw each line.
+            // 3) divide draw rect into N regions and draw each line.
 #if DO_PROFILE
             profiler = Stopwatch.StartNew();
 #endif
@@ -207,14 +184,14 @@ namespace YouThumb
 
             for (int i = 0; i < numLines; ++i)
             {
-                DrawText(graphics, lines[i], font, dropShadowWidth, rect, stringFormat);
+                graphics.DrawString(lines[i], font, Brushes.White, rect, stringFormat);
                 rect.Y += heightPerRow;
             }
 #if DO_PROFILE
             profiler.Stop();
             Console.WriteLine(String.Format("RenderFont() took {0} ms", profiler.ElapsedMilliseconds));
 #endif
-            // 5) finally set the image to the picture box
+            // 4) finally set the image to the picture box
             pbThumb.Image = tmpImage;
         }
 
