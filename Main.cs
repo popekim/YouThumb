@@ -72,7 +72,7 @@ namespace YouThumb
                 {
                     // make sure each word is not bigger
                     var renderedSize = graphics.MeasureString(w, tmpFont, origin, stringFormat);
-                    if (renderedSize.Width >= rect.Width )
+                    if (renderedSize.Width >= rect.Width)
                     {
                         keepTrying = true;
                         break;
@@ -123,9 +123,6 @@ namespace YouThumb
             var tmpImage = new Bitmap(cachedImage.Width, cachedImage.Height);
             var copyImage = (Image)cachedImage.Clone();
 
-            var backgroundColor = new SolidBrush(Color.FromArgb(42, 42, 42));
-            var backgroundEdgeColor = new Pen(Color.FromArgb(42, 42, 42));
-
             int thumbWidth = tmpImage.Width;
             int thumbHeight = tmpImage.Height;
 
@@ -138,6 +135,8 @@ namespace YouThumb
             polygonPoints[2] = new Point(thumbWidth / 2 - margin, thumbHeight);
             polygonPoints[3] = new Point(0, thumbHeight);
 
+            using (var backgroundColor = new SolidBrush(Color.FromArgb(42, 42, 42)))
+            using (var backgroundEdgeColor = new Pen(Color.FromArgb(42, 42, 42)))
             using (Graphics g = Graphics.FromImage(tmpImage))
             {
                 // draw thumbnail 25% to the right
@@ -155,12 +154,20 @@ namespace YouThumb
             stringFormat.Alignment = StringAlignment.Near;
             stringFormat.LineAlignment = StringAlignment.Center;
 
+            // 2) calculate proper draw region based on ratio
+            // some youtube thumbs are shown in 4:3 ratio. so let's make it 4:3 ratio
+            float marginPercentW = 0;
+            if (tmpImage.Height * 16 == tmpImage.Width * 9)
+            {
+                marginPercentW = 4 * 0.5F / 16F;
+            }
+
             var rect = new RectangleF(margin,
                 margin * 3,
-                thumbWidth/2 - margin * 3,
+                thumbWidth / 2 - margin * 3,
                 thumbHeight - margin * 6);
 
-            // 2) properly word wrap. (.NET function text-wraps at character level, but we want word-level wrap
+            // 3) properly word wrap. (.NET function text-wraps at character level, but we want word-level wrap
             // find some biggest fontsize we will begin with. GetWordWrappedText will find the proper smaller font size
             // that makes everything fit into the draw region
             var fontSize = Math.Min(thumbWidth, thumbHeight) / 2;
@@ -172,7 +179,7 @@ namespace YouThumb
             profiler.Stop();
             Console.WriteLine(String.Format("GetWorldWrappedText() took {0} ms", profiler.ElapsedMilliseconds));
 #endif
-            // 3) divide draw rect into N regions and draw each line.
+            // 4) divide draw rect into N regions and draw each line.
 #if DO_PROFILE
             profiler = Stopwatch.StartNew();
 #endif
@@ -191,7 +198,7 @@ namespace YouThumb
             profiler.Stop();
             Console.WriteLine(String.Format("RenderFont() took {0} ms", profiler.ElapsedMilliseconds));
 #endif
-            // 4) finally set the image to the picture box
+            // 5) finally set the image to the picture box
             pbThumb.Image = tmpImage;
         }
 
@@ -203,7 +210,7 @@ namespace YouThumb
                 return false;
             }
 
-            string [] modesToTry = { "maxresdefault", "mqdefault" };
+            string[] modesToTry = { "maxresdefault", "mqdefault" };
 
             Image image = null;
 
@@ -237,13 +244,13 @@ namespace YouThumb
             {
                 // HACK: read whole html page and parse title. It's to avoid oAuth request to call google api :(
                 var videoPageUrl = new Uri(String.Format(@"https://www.youtube.com/watch?v={0}", videoID));
-                   
+
                 using (var webclient = new WebClient())
                 using (var memoryStream = new MemoryStream(webclient.DownloadData(videoPageUrl)))
                 using (var streamReader = new StreamReader(memoryStream))
                 {
                     var contents = streamReader.ReadToEnd();
-                    
+
                     const string beginToken = "<title>";
                     const string endToken = " - YouTube</title>";
                     var startIndex = contents.IndexOf(beginToken) + beginToken.Length;
@@ -259,7 +266,7 @@ namespace YouThumb
             }
 
             currentVideoID = videoID;
-            if ( image.Height < 1080 )
+            if (image.Height < 1080)
             {
                 var scale = 1080.0 / image.Height;
                 var w = (int)(image.Width * scale);
