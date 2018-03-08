@@ -140,8 +140,8 @@ namespace YouThumb
 
             using (Graphics g = Graphics.FromImage(tmpImage))
             {
-                // draw thumbnail 30% to the right
-                g.DrawImage(copyImage, new Point(cachedImage.Width / 3, 0));
+                // draw thumbnail 25% to the right
+                g.DrawImage(copyImage, new Point(cachedImage.Width / 4, 0));
                 // draw left background
                 g.SmoothingMode = SmoothingMode.AntiAlias;
                 g.DrawPolygon(backgroundEdgeColor, polygonPoints);
@@ -156,9 +156,9 @@ namespace YouThumb
             stringFormat.LineAlignment = StringAlignment.Center;
 
             var rect = new RectangleF(margin,
-                margin,
+                margin * 3,
                 thumbWidth/2 - margin * 3,
-                thumbHeight - margin * 2);
+                thumbHeight - margin * 6);
 
             // 2) properly word wrap. (.NET function text-wraps at character level, but we want word-level wrap
             // find some biggest fontsize we will begin with. GetWordWrappedText will find the proper smaller font size
