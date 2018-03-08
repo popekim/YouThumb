@@ -72,7 +72,7 @@ namespace YouThumb
                 {
                     // make sure each word is not bigger
                     var renderedSize = graphics.MeasureString(w, tmpFont, origin, stringFormat);
-                    if (renderedSize.Width >= rect.Width )
+                    if (renderedSize.Width >= rect.Width)
                     {
                         keepTrying = true;
                         break;
@@ -112,25 +112,6 @@ namespace YouThumb
             return lines;
         }
 
-        private void DrawText(Graphics graphics, string text, Font font, int dropShadowWidth, RectangleF rect, StringFormat stringFormat)
-        {
-            // 1) draw drop shadow
-            for (int y = -dropShadowWidth; y <= dropShadowWidth; ++y)
-            {
-                for (int x = -dropShadowWidth; x <= dropShadowWidth; ++x)
-                {
-                    var shadowRect = rect;
-                    shadowRect.X = shadowRect.X - x;
-                    shadowRect.Y = shadowRect.Y - y;
-
-                    graphics.DrawString(text, font, Brushes.Black, shadowRect, stringFormat);
-                }
-            }
-
-            // 2) draw text
-            graphics.DrawString(text, font, Brushes.White, rect, stringFormat);
-        }
-
         private void GenerateThumb()
         {
             if (cachedImage == null)
@@ -139,13 +120,38 @@ namespace YouThumb
             }
 
             // 1) some setup
-            var tmpImage = (Image)cachedImage.Clone();
+            var tmpImage = new Bitmap(cachedImage.Width, cachedImage.Height);
+            var copyImage = (Image)cachedImage.Clone();
+
+            int thumbWidth = tmpImage.Width;
+            int thumbHeight = tmpImage.Height;
+
+            const int margin = 75;
+
+            // make left background point
+            Point[] polygonPoints = new Point[4];
+            polygonPoints[0] = new Point(0, 0);
+            polygonPoints[1] = new Point(thumbWidth / 2 + margin, 0);
+            polygonPoints[2] = new Point(thumbWidth / 2 - margin, thumbHeight);
+            polygonPoints[3] = new Point(0, thumbHeight);
+
+            using (var backgroundColor = new SolidBrush(Color.FromArgb(42, 42, 42)))
+            using (var backgroundEdgeColor = new Pen(Color.FromArgb(42, 42, 42)))
+            using (Graphics g = Graphics.FromImage(tmpImage))
+            {
+                // draw thumbnail 25% to the right
+                g.DrawImage(copyImage, new Point(cachedImage.Width / 4, 0));
+                // draw left background
+                g.SmoothingMode = SmoothingMode.AntiAlias;
+                g.DrawPolygon(backgroundEdgeColor, polygonPoints);
+                g.FillPolygon(backgroundColor, polygonPoints);
+            }
 
             Graphics graphics = Graphics.FromImage(tmpImage);
             graphics.TextRenderingHint = System.Drawing.Text.TextRenderingHint.AntiAlias;
 
             StringFormat stringFormat = new StringFormat();
-            stringFormat.Alignment = StringAlignment.Center;
+            stringFormat.Alignment = StringAlignment.Near;
             stringFormat.LineAlignment = StringAlignment.Center;
 
             // 2) calculate proper draw region based on ratio
@@ -156,15 +162,15 @@ namespace YouThumb
                 marginPercentW = 4 * 0.5F / 16F;
             }
 
-            var rect = new RectangleF(marginPercentW * tmpImage.Width,
-                0,
-                tmpImage.Width - marginPercentW * tmpImage.Width * 2,
-                tmpImage.Height);
+            var rect = new RectangleF(margin,
+                margin * 3,
+                thumbWidth / 2 - margin * 3,
+                thumbHeight - margin * 6);
 
             // 3) properly word wrap. (.NET function text-wraps at character level, but we want word-level wrap
             // find some biggest fontsize we will begin with. GetWordWrappedText will find the proper smaller font size
             // that makes everything fit into the draw region
-            var fontSize = Math.Min(tmpImage.Width, tmpImage.Height) / 2;
+            var fontSize = Math.Min(thumbWidth, thumbHeight) / 2;
 #if DO_PROFILE
             Stopwatch profiler = Stopwatch.StartNew();
 #endif
@@ -173,9 +179,6 @@ namespace YouThumb
             profiler.Stop();
             Console.WriteLine(String.Format("GetWorldWrappedText() took {0} ms", profiler.ElapsedMilliseconds));
 #endif
-            // TODO: configuable
-            var dropShadowWidth = Math.Max(5, fontSize / 12);
-
             // 4) divide draw rect into N regions and draw each line.
 #if DO_PROFILE
             profiler = Stopwatch.StartNew();
@@ -188,7 +191,7 @@ namespace YouThumb
 
             for (int i = 0; i < numLines; ++i)
             {
-                DrawText(graphics, lines[i], font, dropShadowWidth, rect, stringFormat);
+                graphics.DrawString(lines[i], font, Brushes.White, rect, stringFormat);
                 rect.Y += heightPerRow;
             }
 #if DO_PROFILE
@@ -207,7 +210,7 @@ namespace YouThumb
                 return false;
             }
 
-            string [] modesToTry = { "maxresdefault", "mqdefault" };
+            string[] modesToTry = { "maxresdefault", "mqdefault" };
 
             Image image = null;
 
@@ -241,13 +244,13 @@ namespace YouThumb
             {
                 // HACK: read whole html page and parse title. It's to avoid oAuth request to call google api :(
                 var videoPageUrl = new Uri(String.Format(@"https://www.youtube.com/watch?v={0}", videoID));
-                   
+
                 using (var webclient = new WebClient())
                 using (var memoryStream = new MemoryStream(webclient.DownloadData(videoPageUrl)))
                 using (var streamReader = new StreamReader(memoryStream))
                 {
                     var contents = streamReader.ReadToEnd();
-                    
+
                     const string beginToken = "<title>";
                     const string endToken = " - YouTube</title>";
                     var startIndex = contents.IndexOf(beginToken) + beginToken.Length;
@@ -263,7 +266,7 @@ namespace YouThumb
             }
 
             currentVideoID = videoID;
-            if ( image.Height < 1080 )
+            if (image.Height < 1080)
             {
                 var scale = 1080.0 / image.Height;
                 var w = (int)(image.Width * scale);
