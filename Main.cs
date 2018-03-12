@@ -14,6 +14,7 @@ using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
 using System.IO;
 using System.Net;
+using System.Net.Cache;
 using System.Text.RegularExpressions;
 using System.Windows.Forms;
 using System.Xml;
@@ -200,7 +201,7 @@ namespace YouThumb
         }
 
         // always retrieves best definition image
-        private bool retrieveYoutubeVideoData(string videoID)
+        private bool RetrieveYoutubeVideoDataInternal(string videoID)
         {
             if (videoID == currentVideoID)
             {
@@ -217,7 +218,14 @@ namespace YouThumb
 
                 try
                 {
-                    image = Image.FromStream(new MemoryStream(new WebClient().DownloadData(thumbURL)));
+                    using (var client = new WebClient())
+                    {
+                        client.CachePolicy = new RequestCachePolicy(RequestCacheLevel.NoCacheNoStore);
+                        using (var stream = new MemoryStream(client.DownloadData(thumbURL)))
+                        {
+                            image = Image.FromStream(stream);
+                        }
+                    }
                 }
                 catch (Exception)
                 {
@@ -310,7 +318,7 @@ namespace YouThumb
             }
 
             // got valid youtube id - so let's load youtube image
-            var shouldGenerateNewThumb = retrieveYoutubeVideoData(videoID);
+            var shouldGenerateNewThumb = RetrieveYoutubeVideoDataInternal(videoID);
 
             if (shouldGenerateNewThumb)
             {
