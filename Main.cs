@@ -63,7 +63,7 @@ namespace YouThumb
                 keepTrying = false;
                 --fontSize;
 
-                // reytry with a smaller font size
+                // retry with a smaller font size
                 lines.Clear();
                 lines.Add("");
 
@@ -126,80 +126,77 @@ namespace YouThumb
             int thumbWidth = tmpImage.Width;
             int thumbHeight = tmpImage.Height;
 
-            const int margin = 75;
-
-            // make left background point
-            Point[] polygonPoints = new Point[4];
-            polygonPoints[0] = new Point(0, 0);
-            polygonPoints[1] = new Point(thumbWidth / 2 + margin, 0);
-            polygonPoints[2] = new Point(thumbWidth / 2 - margin, thumbHeight);
-            polygonPoints[3] = new Point(0, thumbHeight);
-
             using (var backgroundColor = new SolidBrush(Color.FromArgb(42, 42, 42)))
             using (var backgroundEdgeColor = new Pen(Color.FromArgb(42, 42, 42)))
-            using (Graphics g = Graphics.FromImage(tmpImage))
+            using (Graphics graphics = Graphics.FromImage(tmpImage))
             {
+                // 2) draw background for left overlay
+                const int OVERLAY_SLOPE_MARGIN = 75;
+
+                Point[] polygonPoints = new Point[4];
+                polygonPoints[0] = new Point(0, 0);
+                polygonPoints[1] = new Point(thumbWidth / 2 + OVERLAY_SLOPE_MARGIN, 0);
+                polygonPoints[2] = new Point(thumbWidth / 2 - OVERLAY_SLOPE_MARGIN, thumbHeight);
+                polygonPoints[3] = new Point(0, thumbHeight);
+
                 // draw thumbnail 25% to the right
-                g.DrawImage(copyImage, new Point(cachedImage.Width / 4, 0));
+                graphics.DrawImage(copyImage, new Point(cachedImage.Width / 4, 0));
                 // draw left background
-                g.SmoothingMode = SmoothingMode.AntiAlias;
-                g.DrawPolygon(backgroundEdgeColor, polygonPoints);
-                g.FillPolygon(backgroundColor, polygonPoints);
+                graphics.SmoothingMode = SmoothingMode.AntiAlias;
+                graphics.DrawPolygon(backgroundEdgeColor, polygonPoints);
+                graphics.FillPolygon(backgroundColor, polygonPoints);
+
+                graphics.TextRenderingHint = System.Drawing.Text.TextRenderingHint.AntiAlias;
+
+                StringFormat stringFormat = new StringFormat
+                {
+                    Alignment = StringAlignment.Near,
+                    LineAlignment = StringAlignment.Center
+                };
+
+                // 3) properly word wrap. (.NET function text-wraps at character level, but we want word-level wrap
+                // find some biggest font size we will begin with. GetWordWrappedText will find the proper smaller font size
+                // that makes everything fit into the draw region
+
+                const int TEXTBOX_MARGIN_H = 75;
+                const int TEXTBOX_MARGIN_V = TEXTBOX_MARGIN_H * 3;
+                var rect = new RectangleF(TEXTBOX_MARGIN_H,
+                    TEXTBOX_MARGIN_V,
+                    thumbWidth / 2 - TEXTBOX_MARGIN_H * 2,
+                    thumbHeight - TEXTBOX_MARGIN_V * 2);
+
+                var fontSize = Math.Min(thumbWidth, thumbHeight) / 4;
+
+#if DO_PROFILE
+                Stopwatch profiler = Stopwatch.StartNew();
+#endif
+                var lines = GetWordWrappedText(ref fontSize, stringFormat, rect, graphics);
+#if DO_PROFILE
+                profiler.Stop();
+                Console.WriteLine(String.Format("GetWorldWrappedText() took {0} ms", profiler.ElapsedMilliseconds));
+#endif
+                // 4) divide draw rect into N regions and draw each line.
+#if DO_PROFILE
+                profiler = Stopwatch.StartNew();
+#endif
+                var font = new Font(cbFonts.SelectedItem as string, fontSize, FontStyle.Bold);
+
+                var numLines = lines.Count;
+                float heightPerRow = rect.Height / numLines;
+                rect.Height = heightPerRow;
+
+                for (int i = 0; i < numLines; ++i)
+                {
+                    graphics.DrawString(lines[i], font, Brushes.White, rect, stringFormat);
+                    rect.Y += heightPerRow;
+                }
+#if DO_PROFILE
+                profiler.Stop();
+                Console.WriteLine(String.Format("RenderFont() took {0} ms", profiler.ElapsedMilliseconds));
+#endif
+                // 5) finally set the image to the picture box
+                pbThumb.Image = tmpImage;
             }
-
-            Graphics graphics = Graphics.FromImage(tmpImage);
-            graphics.TextRenderingHint = System.Drawing.Text.TextRenderingHint.AntiAlias;
-
-            StringFormat stringFormat = new StringFormat();
-            stringFormat.Alignment = StringAlignment.Near;
-            stringFormat.LineAlignment = StringAlignment.Center;
-
-            // 2) calculate proper draw region based on ratio
-            // some youtube thumbs are shown in 4:3 ratio. so let's make it 4:3 ratio
-            float marginPercentW = 0;
-            if (tmpImage.Height * 16 == tmpImage.Width * 9)
-            {
-                marginPercentW = 4 * 0.5F / 16F;
-            }
-
-            var rect = new RectangleF(margin,
-                margin * 3,
-                thumbWidth / 2 - margin * 3,
-                thumbHeight - margin * 6);
-
-            // 3) properly word wrap. (.NET function text-wraps at character level, but we want word-level wrap
-            // find some biggest fontsize we will begin with. GetWordWrappedText will find the proper smaller font size
-            // that makes everything fit into the draw region
-            var fontSize = Math.Min(thumbWidth, thumbHeight) / 2;
-#if DO_PROFILE
-            Stopwatch profiler = Stopwatch.StartNew();
-#endif
-            var lines = GetWordWrappedText(ref fontSize, stringFormat, rect, graphics);
-#if DO_PROFILE
-            profiler.Stop();
-            Console.WriteLine(String.Format("GetWorldWrappedText() took {0} ms", profiler.ElapsedMilliseconds));
-#endif
-            // 4) divide draw rect into N regions and draw each line.
-#if DO_PROFILE
-            profiler = Stopwatch.StartNew();
-#endif
-            var font = new Font(cbFonts.SelectedItem as string, fontSize, FontStyle.Bold);
-
-            var numLines = lines.Count;
-            float heightPerRow = rect.Height / numLines;
-            rect.Height = heightPerRow;
-
-            for (int i = 0; i < numLines; ++i)
-            {
-                graphics.DrawString(lines[i], font, Brushes.White, rect, stringFormat);
-                rect.Y += heightPerRow;
-            }
-#if DO_PROFILE
-            profiler.Stop();
-            Console.WriteLine(String.Format("RenderFont() took {0} ms", profiler.ElapsedMilliseconds));
-#endif
-            // 5) finally set the image to the picture box
-            pbThumb.Image = tmpImage;
         }
 
         // always retrieves best definition image
