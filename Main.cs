@@ -186,9 +186,26 @@ namespace YouThumb
                 float heightPerRow = rect.Height / numLines;
                 rect.Height = heightPerRow;
 
-                for (int i = 0; i < numLines; ++i)
+                var originalX = rect.X;
+                var originalY = rect.Y;
+                // drop shadow
+                rect.X = rect.X + 8;
+                rect.Y = rect.Y + 8;
+                using (var dropShadowColor = new SolidBrush(Color.FromArgb(30, 30, 30)))
                 {
-                    graphics.DrawString(lines[i], font, Brushes.White, rect, stringFormat);
+                    foreach (var line in lines)
+                    {
+                        graphics.DrawString(line, font, dropShadowColor, rect, stringFormat);
+                        rect.Y += heightPerRow;
+                    }
+                }
+
+                // real text
+                rect.X = originalX;
+                rect.Y = originalY;
+                foreach (var line in lines)
+                {
+                    graphics.DrawString(line, font, Brushes.White, rect, stringFormat);
                     rect.Y += heightPerRow;
                 }
 #if DO_PROFILE
@@ -284,6 +301,7 @@ namespace YouThumb
             return true;
 
         }
+
         public static Bitmap ResizeImage(Image image, int width, int height)
         {
             var destRect = new Rectangle(0, 0, width, height);
